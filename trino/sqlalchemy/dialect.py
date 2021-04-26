@@ -14,11 +14,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import exc, sql
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.engine.default import DefaultDialect
+from sqlalchemy.engine.default import DefaultDialect, DefaultExecutionContext
 from sqlalchemy.engine.url import URL
 
 from trino import dbapi as trino_dbapi
 from trino.auth import BasicAuthentication
+from trino.dbapi import Cursor
 
 from . import compiler, datatype, error
 
@@ -259,6 +260,15 @@ class TrinoDialect(DefaultDialect):
     def _get_default_schema_name(self, connection: Connection) -> Optional[str]:
         dbapi_connection: trino_dbapi.Connection = connection.connection
         return dbapi_connection.schema
+
+    def do_execute(self, cursor: Cursor, statement: str, parameters: Tuple[Any, ...],
+                   context: DefaultExecutionContext = None):
+        cursor.execute(statement, parameters)
+        if context and context.should_autocommit:
+            # SQL statement only submitted to Trino server when cursor.fetch*() is called.
+            # For DDL (CREATE/ALTER/DROP) and DML (INSERT/UPDATE/DELETE) statement, call cursor.description
+            # to force submit statement immediately.
+            cursor.description # noqa
 
     def do_rollback(self, dbapi_connection):
         if dbapi_connection.transaction is not None:
