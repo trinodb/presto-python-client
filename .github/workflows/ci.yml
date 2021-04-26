@@ -8,12 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [
-          3.6,
-          3.7,
-          3.8,
-          3.9,
-        ]
+        python-version:
+          - 3.6
+          - 3.7
+          - 3.8
+          - 3.9
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -23,10 +22,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install libkrb5-dev
-          pip install .[tests]
+          pip install -e .[tests]
       - name: Run tests
         run: |
-          pytest -s tests/ integration_tests/
+          pytest -s .
       - name: Run linter
         run: |
           flake8

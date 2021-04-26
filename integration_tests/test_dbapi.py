@@ -15,9 +15,9 @@ from datetime import datetime
 import pytest
 import pytz
 
-import trino
 from conftest import TRINO_VERSION
-from trino.exceptions import TrinoQueryError
+from trino.dbapi import Connection
+from trino.exceptions import TrinoQueryError, TrinoUserError
 from trino.transaction import IsolationLevel
 
 
@@ -25,7 +25,7 @@ from trino.transaction import IsolationLevel
 def trino_connection(run_trino):
     _, host, port = run_trino
 
-    yield trino.dbapi.Connection(
+    yield Connection(
         host=host, port=port, user="test", source="test", max_attempts=1
     )
 
@@ -34,7 +34,7 @@ def trino_connection(run_trino):
 def trino_connection_with_transaction(run_trino):
     _, host, port = run_trino
 
-    yield trino.dbapi.Connection(
+    yield Connection(
         host=host,
         port=port,
         user="test",
@@ -280,7 +280,7 @@ def test_select_query_stats(trino_connection):
 
 def test_select_failed_query(trino_connection):
     cur = trino_connection.cursor()
-    with pytest.raises(trino.exceptions.TrinoUserError):
+    with pytest.raises(TrinoUserError):
         cur.execute("SELECT * FROM catalog.schema.do_not_exist")
         cur.fetchall()
 
@@ -307,7 +307,7 @@ def test_cancel_query(trino_connection):
 def test_session_properties(run_trino):
     _, host, port = run_trino
 
-    connection = trino.dbapi.Connection(
+    connection = Connection(
         host=host,
         port=port,
         user="test",
